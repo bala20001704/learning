@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import ProductCard, { type Product } from "./ProductCard";
 import { getProducts } from "./services";
+import { useProducts } from "./hooks";
 
 const DUMMY = [
   { id: 1, title: "Sneaker A", price: 2999, brand: "BrandA" },
@@ -9,23 +10,16 @@ const DUMMY = [
 ];
 
 export default function ProductsPage() {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(false);
+  const { data, isLoading, error } = useProducts({ limit: 30, skip: 0 });
 
-  useEffect(() => {
-    setLoading(true);
-    getProducts({ limit: 30, skip: 0 })
-      .then((data) => setProducts(data.products || []))
-      .catch((e) => console.error(e))
-      .finally(() => setLoading(false));
-  }, []);
+  if (isLoading) return <div>Loading…</div>;
+  if (error) return <div>Error loading products</div>;
 
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-2xl mb-4">Products (gen0)</h1>
-      {loading ? <div>Loading…</div> : null}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {products.map((p) => (
+      <h1 className="text-2xl mb-4">Products</h1>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        {data.products.map((p: Product) => (
           <ProductCard key={p.id} product={p} />
         ))}
       </div>
