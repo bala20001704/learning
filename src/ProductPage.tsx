@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import ProductCard, { type Product } from "./ProductCard";
 import { getProducts } from "./services";
-import { useCategories, useProducts, useProductsInfinite } from "./hooks";
+import { useCategories, useDebounce, useProducts, useProductsInfinite, useSearchProductsInfinite } from "./hooks";
 
 const DUMMY = [
   { id: 1, title: "Sneaker A", price: 2999, brand: "BrandA" },
@@ -10,9 +10,12 @@ const DUMMY = [
 ];
 
 export default function ProductsPage() {
+  const [q, setQ] = useState("");
+  const debounced = useDebounce(q, 300);
+  const { data, isFetchingNextPage, fetchNextPage, hasNextPage } = useSearchProductsInfinite(debounced);
   const [category, setCategory] = useState<string | undefined>(undefined);
   const { data: cats } = useCategories();
-  const { data, isFetchingNextPage, hasNextPage, fetchNextPage, status } = useProductsInfinite();
+  const items = data?.pages.flatMap((p: any) => p.products) ?? [];
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -30,16 +33,20 @@ export default function ProductsPage() {
     return () => obs.disconnect();
   }, [fetchNextPage, hasNextPage]);
 
-  if (status === "pending") return <div>Loading…</div>;
-  if (status === "error") return <div>Error</div>;
-
-  const items = data.pages.flatMap((p: any) => p.products);
-
   console.log("category", cats);
 
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl mb-4">Products</h1>
+
+      <div className="mb-4">
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Search products…"
+          className="border p-2 rounded w-full md:w-80"
+        />
+      </div>
 
       <div>
         <select
