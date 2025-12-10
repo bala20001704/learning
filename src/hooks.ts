@@ -84,3 +84,24 @@ export function useDebounce<T>(value: T, delay = 5000) {
   }, [value, delay]);
   return debounced;
 }
+
+export type StockStatus = "all" | "in" | "low" | "out";
+export type SortOption = "price_asc" | "price_desc" | "rating" | "title";
+
+export function useProductFilters(initial = {}) {
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000]);
+  const [minRating, setMinRating] = useState<number>(0);
+  const [stockStatus, setStockStatus] = useState<StockStatus>("all");
+  const [sort, setSort] = useState<SortOption>("price_asc");
+
+  return {
+    priceRange,
+    setPriceRange,
+    minRating,
+    setMinRating,
+    stockStatus,
+    setStockStatus,
+    sort,
+    setSort,
+  };
+}

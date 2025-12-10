@@ -1,7 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import ProductCard, { type Product } from "./ProductCard";
 import { getProducts } from "./services";
-import { useCategories, useDebounce, useProducts, useProductsInfinite, useSearchProductsInfinite } from "./hooks";
+import {
+  useCategories,
+  useDebounce,
+  useProductFilters,
+  useProducts,
+  useProductsInfinite,
+  useSearchProductsInfinite,
+} from "./hooks";
+import { applyClientFilters } from "./utils";
 
 const DUMMY = [
   { id: 1, title: "Sneaker A", price: 2999, brand: "BrandA" },
@@ -10,12 +18,18 @@ const DUMMY = [
 ];
 
 export default function ProductsPage() {
+  const filters = useProductFilters();
   const [q, setQ] = useState("");
   const debounced = useDebounce(q, 300);
-  const { data, isFetchingNextPage, fetchNextPage, hasNextPage } = useSearchProductsInfinite(debounced);
+
+  const { data, hasNextPage, fetchNextPage } = useProductsInfinite(); // assume base dataset for simplicity
+  const items = data?.pages.flatMap((p: any) => p.products) ?? [];
+
+  const shown = applyClientFilters(items, filters);
+
   const [category, setCategory] = useState<string | undefined>(undefined);
   const { data: cats } = useCategories();
-  const items = data?.pages.flatMap((p: any) => p.products) ?? [];
+
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -37,43 +51,73 @@ export default function ProductsPage() {
 
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-2xl mb-4">Products</h1>
-
-      <div className="mb-4">
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Search products…"
-          className="border p-2 rounded w-full md:w-80"
-        />
-      </div>
-
-      <div>
-        <select
-          value={category || ""}
-          onChange={(e) => setCategory(e.target.value || undefined)}
-          className="border rounded p-2"
-        >
-          <option value="">All categories</option>
-          {cats?.map((category) => {
-            return (
-              <option key={category.name} value={category.slug}>
-                {category.slug}
-              </option>
-            );
-          })}
-        </select>
+      <div className="flex gap-4 mb-4">
+        {/* Price range control (simple) */}
+        <div>
+          <label className="block text-xs">Min price</label>
+          <input
+            type="number"
+            value={filters.priceRange[0]}
+            onChange={(e) => filters.setPriceRange([Number(e.target.value), filters.priceRange[1]])}
+            className="border p-1 rounded w-24"
+          />
+        </div>
+        <div>
+          <label className="block text-xs">Max price</label>
+          <input
+            type="number"
+            value={filters.priceRange[1]}
+            onChange={(e) => filters.setPriceRange([filters.priceRange[0], Number(e.target.value)])}
+            className="border p-1 rounded w-24"
+          />
+        </div>
+        <div>
+          <label className="block text-xs">Min rating</label>
+          <select
+            value={filters.minRating}
+            onChange={(e) => filters.setMinRating(Number(e.target.value))}
+            className="border p-1 rounded"
+          >
+            <option value={0}>Any</option>
+            <option value={3}>3+</option>
+            <option value={4}>4+</option>
+          </select>
+        </div>
+        <div>
+          <label className="block text-xs">Stock</label>
+          <select
+            value={filters.stockStatus}
+            onChange={(e) => filters.setStockStatus(e.target.value as any)}
+            className="border p-1 rounded"
+          >
+            <option value="all">All</option>
+            <option value="in">In stock</option>
+            <option value="low">Low</option>
+            <option value="out">Out</option>
+          </select>
+        </div>
+        <div>
+          <label className="block text-xs">Sort</label>
+          <select
+            value={filters.sort}
+            onChange={(e) => filters.setSort(e.target.value as any)}
+            className="border p-1 rounded"
+          >
+            <option value="price_asc">Price (low-high)</option>
+            <option value="price_desc">Price (high-low)</option>
+            <option value="rating">Rating</option>
+            <option value="title">Title (A-Z)</option>
+          </select>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {items.map((p: Product) => (
+        {shown.map((p: any) => (
           <ProductCard key={p.id} product={p} />
         ))}
       </div>
 
-      <div ref={sentinelRef} className="h-10 flex items-center justify-center mt-6">
-        {isFetchingNextPage ? "Loading more…" : hasNextPage ? "Scroll to load more" : "No more products"}
-      </div>
+      {shown.length === 0 && <div className="mt-8 text-center">No products match your filters</div>}
     </div>
   );
 }
