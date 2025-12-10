@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import ProductCard, { type Product } from "./ProductCard";
 import { getProducts } from "./services";
-import { useProducts, useProductsInfinite } from "./hooks";
+import { useCategories, useProducts, useProductsInfinite } from "./hooks";
 
 const DUMMY = [
   { id: 1, title: "Sneaker A", price: 2999, brand: "BrandA" },
@@ -10,6 +10,8 @@ const DUMMY = [
 ];
 
 export default function ProductsPage() {
+  const [category, setCategory] = useState<string | undefined>(undefined);
+  const { data: cats } = useCategories();
   const { data, isFetchingNextPage, hasNextPage, fetchNextPage, status } = useProductsInfinite();
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
@@ -33,9 +35,29 @@ export default function ProductsPage() {
 
   const items = data.pages.flatMap((p: any) => p.products);
 
+  console.log("category", cats);
+
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl mb-4">Products</h1>
+
+      <div>
+        <select
+          value={category || ""}
+          onChange={(e) => setCategory(e.target.value || undefined)}
+          className="border rounded p-2"
+        >
+          <option value="">All categories</option>
+          {cats?.map((category) => {
+            return (
+              <option key={category.name} value={category.slug}>
+                {category.slug}
+              </option>
+            );
+          })}
+        </select>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {items.map((p: Product) => (
           <ProductCard key={p.id} product={p} />
