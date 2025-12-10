@@ -1,5 +1,5 @@
 import { useInfiniteQuery, useQuery, type InfiniteData } from "@tanstack/react-query";
-import { getCategories, getProducts, getProductsByCategory } from "./services";
+import { getCategories, getProducts, getProductsByCategory, searchProducts } from "./services";
 import type { Product } from "./ProductCard";
 
 export function useProducts({ limit = 30, skip = 0 }) {
@@ -49,4 +49,38 @@ export interface ProductsResponse {
   total: number;
   skip: number;
   limit: number;
+}
+
+export function useSearchProductsInfinite(search?: string) {
+  return useInfiniteQuery<
+    ProductsResponse,
+    Error,
+    InfiniteData<ProductsResponse>,
+    ["products", "search", string],
+    number
+  >({
+    queryKey: ["products", "search", search || "all"],
+
+    queryFn: ({ pageParam = 0 }) => searchProducts(search || "", { skip: pageParam }),
+
+    enabled: !!search,
+
+    getNextPageParam: (lastPage) => {
+      const next = lastPage.skip + lastPage.limit;
+      return next < lastPage.total ? next : undefined;
+    },
+
+    initialPageParam: 0,
+  });
+}
+
+import { useEffect, useState } from "react";
+
+export function useDebounce<T>(value: T, delay = 300) {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const id = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(id);
+  }, [value, delay]);
+  return debounced;
 }

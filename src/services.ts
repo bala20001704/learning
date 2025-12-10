@@ -15,3 +15,11 @@ export async function getProductsByCategory(category: string) {
   if (!res.ok) throw new Error("Failed to fetch category");
   return res.json();
 }
+
+export async function searchProducts(query: string, { limit = 30, skip = 0 } = {}) {
+  const res = await fetch(
+    `https://dummyjson.com/products/search?q=${encodeURIComponent(query)}&limit=${limit}&skip=${skip}`
+  );
+  if (!res.ok) throw new Error("Failed to search");
+  return res.json();
+}
